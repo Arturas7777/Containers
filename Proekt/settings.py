@@ -2,6 +2,10 @@ import os
 import dj_database_url
 from pathlib import Path
 
+import os
+import dj_database_url
+from pathlib import Path
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-ev@)_*plpryjtb$hciq8_w8(p2aq1*ky=w6j39^#cy%as-wc(s')
@@ -82,6 +86,6 @@ USE_TZ = True
 # Static files configuration for Heroku
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
