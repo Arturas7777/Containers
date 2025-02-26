@@ -21,14 +21,14 @@ class WarehouseAdmin(admin.ModelAdmin):
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
-    list_display = ('vin', 'make', 'client', 'storage_status', 'title', 'container', 'container_arrival_date')
+    list_display = ('vin', 'make', 'days_on_warehouse', 'client', 'storage_status', 'title', 'container', 'container_arrival_date')
     list_filter = ('storage_status', 'container')
     search_fields = ('vin', 'make', 'client__name')  # Поиск по VIN, марке и имени клиента
 
     def container_arrival_date(self, obj):
         return obj.container.arrival_date if obj.container else None
 
-    container_arrival_date.short_description = 'Дата прибытия контейнера'
+    container_arrival_date.short_description = 'ETA'
 
     def get_warehouse(self, obj):
         return obj.container.warehouse if obj.container else None
@@ -54,3 +54,5 @@ class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('client', 'issue_date', 'due_date', 'amount', 'status')
     list_filter = ('status',)
     search_fields = ('client__name', 'status')
+
+

@@ -1,0 +1,22 @@
+<table>
+    <thead>
+        <tr>
+            <th>VIN</th>
+            <th>Марка</th>
+            <th>Статус</th>
+            <th>Дата на складе</th>
+            <th>Количество дней на складе</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for car in cars %}
+            <tr>
+                <td>{{ car.vin }}</td>
+                <td>{{ car.make }}</td>
+                <td>{{ car.storage_status }}</td>
+                <td>{{ car.date_stored }}</td>
+                <td>{{ car.days_on_warehouse }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

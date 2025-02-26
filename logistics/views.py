@@ -13,4 +13,8 @@ from logistics.tasks import send_payment_reminder
 def send_reminder_view(request):
     send_payment_reminder.delay()  # Запуск задачи Celery
     return JsonResponse({"status": "success", "message": "Reminder sent!"})
+
+def car_list(request):
+    cars = Car.objects.all()  # Получаем все автомобили
+    return render(request, 'logistics/cars_list.html', {'cars': cars})
 # Create your views here.

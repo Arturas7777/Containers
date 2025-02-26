@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 
+
 class Client(models.Model):
     name = models.CharField(max_length=100)  # Имя клиента
     email = models.EmailField()  # Электронная почта клиента
@@ -10,6 +11,7 @@ class Client(models.Model):
     def __str__(self):
         return self.name
 
+
 class Warehouse(models.Model):
     name = models.CharField(max_length=100)
     location = models.TextField()
@@ -17,6 +19,7 @@ class Warehouse(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Container(models.Model):
     STATUS_CHOICES = [
@@ -42,6 +45,7 @@ class Container(models.Model):
         elif self.status != 'sailing':  # Если контейнер больше не "Плывет", снимаем статус с машин
             self.cars.exclude(storage_status='delivered').update(storage_status=self.status)
 
+
 class Car(models.Model):
     STATUS_CHOICES = [
         ('in_port', 'В порту'),
@@ -64,21 +68,36 @@ class Car(models.Model):
     vin = models.CharField(max_length=17, unique=True)
     make = models.CharField(max_length=50)
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="cars", null=True)
-    title = models.CharField(max_length=20, choices=TITLE_CHOICES, default='ours')  # Заменили year на title
+    title = models.CharField(max_length=20, choices=TITLE_CHOICES, default='ours')
     container = models.ForeignKey(Container, on_delete=models.SET_NULL, null=True, blank=True, related_name="cars")
     storage_status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
-    # Новое поле procedure
+    # Новое поле для даты выгрузки автомобиля на склад
+    date_stored = models.DateField(null=True, blank=True)
+
     procedure = models.CharField(
         max_length=10,
         choices=PROCEDURE_CHOICES,
-        default='transit',  # Можно установить по умолчанию
+        default='transit',
     )
 
     def __str__(self):
-        # Проверяем, есть ли клиент, и выводим его имя, если есть
         client_name = self.client.name if self.client else "Без клиента"
-        return f"{self.make} {client_name} ({self.vin})"  # В выводе отображаем имя клиента
+        return f"{self.make} {client_name} ({self.vin})"
+
+    @property
+    def days_on_warehouse(self):
+        """Возвращает количество дней, которое автомобиль находится на складе."""
+        if self.storage_status == 'in_warehouse' and self.date_stored:
+            return (timezone.now().date() - self.date_stored).days
+        return 0  # Если статус не 'На складе' или нет даты, то 0 дней
+
+    def save(self, *args, **kwargs):
+        """Автоматически устанавливаем дату выгрузки, когда статус 'На складе'."""
+        if self.storage_status == 'in_warehouse' and not self.date_stored:
+            self.date_stored = timezone.now().date()  # Устанавливаем текущую дату
+        super().save(*args, **kwargs)
+
 
 class Payment(models.Model):
     car = models.ForeignKey('Car', on_delete=models.CASCADE, null=True, blank=True)  # Привязка к автомобилю
@@ -106,6 +125,7 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment for {self.car if self.car else 'Container'} - {self.amount_paid} / {self.amount_due} USD ({self.status})"
+
 
 class Invoice(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
