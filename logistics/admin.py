@@ -3,10 +3,10 @@ from django.utils import timezone
 
 
 class Client(models.Model):
-    name = models.CharField(max_length=100)  # Имя клиента
-    email = models.EmailField()  # Электронная почта клиента
-    phone = models.CharField(max_length=15)  # Телефон клиента
-    address = models.TextField()  # Адрес клиента
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=15)
+    address = models.TextField()
 
     def __str__(self):
         return self.name
@@ -27,7 +27,7 @@ class Container(models.Model):
         ('unloaded', 'Разгружен'),
         ('stored', 'На складе'),
         ('delivered', 'Передан клиенту'),
-        ('sailing', 'Плывет'),  # Новый статус
+        ('sailing', 'Плывет'),
     ]
 
     number = models.CharField(max_length=50, unique=True)
@@ -39,10 +39,10 @@ class Container(models.Model):
         return self.number
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)  # Сохраняем контейнер
-        if self.status == 'sailing':  # Если контейнер "Плывет", обновляем машины
+        super().save(*args, **kwargs)
+        if self.status == 'sailing':
             self.cars.update(storage_status='sailing')
-        elif self.status != 'sailing':  # Если контейнер больше не "Плывет", снимаем статус с машин
+        else:
             self.cars.exclude(storage_status='delivered').update(storage_status=self.status)
 
 
@@ -51,7 +51,7 @@ class Car(models.Model):
         ('in_port', 'В порту'),
         ('in_warehouse', 'На складе'),
         ('delivered', 'Передан клиенту'),
-        ('sailing', 'Плывет'),  # Новый статус
+        ('sailing', 'Плывет'),
     ]
     PROCEDURE_CHOICES = [
         ('transit', 'Транзит'),
@@ -59,81 +59,58 @@ class Car(models.Model):
         ('import', 'Импорт'),
         ('export', 'Экспорт'),
     ]
-    TITLE_CHOICES = [
-        ('ours', 'У нас'),
-        ('warehouse', 'У склада'),
-        ('delivered', 'Передан клиенту'),
-        ('waiting_from_usa', 'Ждем из USA'),
-    ]
+
     vin = models.CharField(max_length=17, unique=True)
     make = models.CharField(max_length=50)
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="cars", null=True)
-    title = models.CharField(max_length=20, choices=TITLE_CHOICES, default='ours')
     container = models.ForeignKey(Container, on_delete=models.SET_NULL, null=True, blank=True, related_name="cars")
     storage_status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-
-    # Новое поле для даты выгрузки автомобиля на склад
     date_stored = models.DateField(null=True, blank=True)
-
-    procedure = models.CharField(
-        max_length=10,
-        choices=PROCEDURE_CHOICES,
-        default='transit',
-    )
+    procedure = models.CharField(max_length=10, choices=PROCEDURE_CHOICES, default='transit')
 
     def __str__(self):
-        client_name = self.client.name if self.client else "Без клиента"
-        return f"{self.make} {client_name} ({self.vin})"
+        return f"{self.make} ({self.vin})"
 
     def days_on_warehouse_display(self):
-        """Возвращает количество дней, которое автомобиль находится на складе."""
         if self.storage_status == 'in_warehouse' and self.date_stored:
             return (timezone.now().date() - self.date_stored).days
-        return 0  # Если статус не 'На складе' или нет даты, то 0 дней
-
-    days_on_warehouse_display.short_description = "Дней на складе"  # Измененное название
+        return 0
 
     def save(self, *args, **kwargs):
-        """Автоматически устанавливаем дату выгрузки, когда статус 'На складе'."""
         if self.storage_status == 'in_warehouse' and not self.date_stored:
-            self.date_stored = timezone.now().date()  # Устанавливаем текущую дату
+            self.date_stored = timezone.now().date()
         super().save(*args, **kwargs)
 
 
 class Payment(models.Model):
-    car = models.ForeignKey('Car', on_delete=models.CASCADE, null=True, blank=True)  # Привязка к автомобилю
-    container = models.ForeignKey('Container', on_delete=models.CASCADE, null=True, blank=True)  # Привязка к контейнеру
-    amount_due = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма долга
-    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Сумма уже оплачена
-    payment_date = models.DateField(auto_now_add=True)  # Дата платежа
-    status = models.CharField(max_length=20, choices=[  # Статус платежа
+    car = models.ForeignKey(Car, on_delete=models.CASCADE, null=True, blank=True)
+    container = models.ForeignKey(Container, on_delete=models.CASCADE, null=True, blank=True)
+    amount_due = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    payment_date = models.DateField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=[
         ('pending', 'Ожидает оплаты'),
         ('paid', 'Оплачен'),
         ('overdue', 'Просрочен'),
     ])
-    is_partial = models.BooleanField(default=False)  # Отметка о частичной оплате
 
     def save(self, *args, **kwargs):
-        if self.amount_paid < self.amount_due:
-            self.is_partial = True
-        else:
-            self.is_partial = False
-        super().save(*args, **kwargs)  # Сохраняем объект
+        self.is_partial = self.amount_paid < self.amount_due
+        super().save(*args, **kwargs)
 
     def get_balance(self):
-        """Вычисляем сумму долга"""
         return self.amount_due - self.amount_paid
 
     def __str__(self):
-        return f"Payment for {self.car if self.car else 'Container'} - {self.amount_paid} / {self.amount_due} USD ({self.status})"
+        return f"Payment: {self.amount_paid}/{self.amount_due} USD ({self.status})"
 
 
 class Invoice(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
-    issue_date = models.DateField(default=timezone.now)  # Дата выставления счета
-    due_date = models.DateField()  # Срок оплаты
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма счета
-    status = models.CharField(max_length=20, choices=[  # Статус счета
+    issue_date = models.DateField(default=timezone.now)
+    due_date = models.DateField()
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=[
         ('unpaid', 'Не оплачен'),
         ('paid', 'Оплачен'),
         ('overdue', 'Просрочен'),
