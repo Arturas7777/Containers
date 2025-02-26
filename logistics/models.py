@@ -101,6 +101,33 @@ class Payment(models.Model):
         return f"Payment for {self.car if self.car else 'Container'} - {self.amount} USD ({self.status})"
 
 
+from django.utils import timezone
+
+
+class Invoice(models.Model):
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
+    issue_date = models.DateField(default=timezone.now)  # Дата выставления счета
+    due_date = models.DateField()  # Срок оплаты
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма счета
+    status = models.CharField(max_length=20, choices=[
+        ('unpaid', 'Не оплачен'),
+        ('paid', 'Оплачен'),
+        ('overdue', 'Просрочен'),
+    ], default='unpaid')
+
+    def mark_as_paid(self):
+        self.status = 'paid'
+        self.save()
+
+    def check_overdue(self):
+        if self.status == 'unpaid' and self.due_date < timezone.now().date():
+            self.status = 'overdue'
+            self.save()
+
+    def __str__(self):
+        return f"Invoice #{self.id} - {self.client.name} - {self.amount} USD ({self.status})"
+
+
 from django.db import models
 
 # Create your models here.
