@@ -85,12 +85,13 @@ class Car(models.Model):
         client_name = self.client.name if self.client else "Без клиента"
         return f"{self.make} {client_name} ({self.vin})"
 
-    @property
-    def days_on_warehouse(self):
+    def days_on_warehouse_display(self):
         """Возвращает количество дней, которое автомобиль находится на складе."""
         if self.storage_status == 'in_warehouse' and self.date_stored:
             return (timezone.now().date() - self.date_stored).days
         return 0  # Если статус не 'На складе' или нет даты, то 0 дней
+
+    days_on_warehouse_display.short_description = "Дней на складе"  # Измененное название
 
     def save(self, *args, **kwargs):
         """Автоматически устанавливаем дату выгрузки, когда статус 'На складе'."""
