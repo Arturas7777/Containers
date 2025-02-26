@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class Client(models.Model):
     name = models.CharField(max_length=100)  # Имя клиента
@@ -82,25 +83,49 @@ class Car(models.Model):
 class Payment(models.Model):
     car = models.ForeignKey('Car', on_delete=models.CASCADE, null=True, blank=True)  # Привязка к автомобилю
     container = models.ForeignKey('Container', on_delete=models.CASCADE, null=True, blank=True)  # Привязка к контейнеру
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма платежа
+    amount_due = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма долга
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Сумма уже оплачена
     payment_date = models.DateField(auto_now_add=True)  # Дата платежа
     status = models.CharField(max_length=20, choices=[  # Статус платежа
         ('pending', 'Ожидает оплаты'),
         ('paid', 'Оплачен'),
         ('overdue', 'Просрочен'),
     ])
+    is_partial = models.BooleanField(default=False)  # Отметка о частичной оплате
 
     def save(self, *args, **kwargs):
-        # Если платеж связан с контейнером, делим сумму на количество машин в контейнере
-        if self.container:
-            cars_in_container = self.container.car_set.count()  # Получаем количество машин в контейнере
-            self.amount = self.amount / cars_in_container  # Разделяем сумму на количество машин
+        if self.amount_paid < self.amount_due:
+            self.is_partial = True
+        else:
+            self.is_partial = False
         super().save(*args, **kwargs)  # Сохраняем объект
 
+    def get_balance(self):
+        """Вычисляем сумму долга"""
+        return self.amount_due - self.amount_paid
+
     def __str__(self):
-        return f"Payment for {self.car if self.car else 'Container'} - {self.amount} USD ({self.status})"
+        return f"Payment for {self.car if self.car else 'Container'} - {self.amount_paid} / {self.amount_due} USD ({self.status})"
 
+class Invoice(models.Model):
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
+    issue_date = models.DateField(default=timezone.now)  # Дата выставления счета
+    due_date = models.DateField()  # Срок оплаты
+    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма счета
+    status = models.CharField(max_length=20, choices=[  # Статус счета
+        ('unpaid', 'Не оплачен'),
+        ('paid', 'Оплачен'),
+        ('overdue', 'Просрочен'),
+    ], default='unpaid')
 
-from django.db import models
+    def mark_as_paid(self):
+        self.status = 'paid'
+        self.save()
 
-# Create your models here.
+    def check_overdue(self):
+        if self.status == 'unpaid' and self.due_date < timezone.now().date():
+            self.status = 'overdue'
+            self.save()
+
+    def __str__(self):
+        return f"Invoice #{self.id} - {self.client.name} - {self.amount} USD ({self.status})"

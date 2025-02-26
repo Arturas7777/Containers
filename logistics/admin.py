@@ -2,15 +2,22 @@ from django.contrib import admin
 from .models import Car, Payment, Warehouse, Container, Client
 
 
+from django.contrib import admin
+from .models import Payment, Warehouse, Car, Container, Client, Invoice
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('car', 'container', 'amount', 'payment_date', 'status')
+    list_display = ('car', 'container', 'amount_due', 'amount_paid', 'get_balance', 'payment_date', 'status', 'is_partial')
+    list_filter = ('status', 'is_partial')
+    search_fields = ('car__vin', 'container__number', 'status')
 
+    def get_balance(self, obj):
+        return obj.get_balance()
+    get_balance.short_description = 'Оставшийся долг'
 
 @admin.register(Warehouse)
 class WarehouseAdmin(admin.ModelAdmin):
     list_display = ('name', 'location', 'capacity')
-
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
@@ -28,11 +35,9 @@ class CarAdmin(admin.ModelAdmin):
 
     get_warehouse.short_description = 'Склад'
 
-
 class CarInline(admin.TabularInline):  # или admin.StackedInline для другого вида
     model = Car
     extra = 1  # Количество пустых форм для добавления машин
-
 
 @admin.register(Container)
 class ContainerAdmin(admin.ModelAdmin):
@@ -40,12 +45,12 @@ class ContainerAdmin(admin.ModelAdmin):
     list_filter = ('status', 'warehouse')
     inlines = [CarInline]  # Вставляем возможность добавлять машины
 
-
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'phone', 'address')
 
-
-from django.contrib import admin
-
-# Register your models here.
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = ('client', 'issue_date', 'due_date', 'amount', 'status')
+    list_filter = ('status',)
+    search_fields = ('client__name', 'status')
