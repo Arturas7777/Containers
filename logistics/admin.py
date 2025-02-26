@@ -5,8 +5,12 @@ from .models import Car, Payment, Warehouse, Container, Client
 from django.contrib import admin
 from .models import Payment, Warehouse, Car, Container, Client, Invoice
 
+from django.contrib import admin
+from .models import Payment, Warehouse, Car, Container, Client, Invoice
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('car', 'container', 'amount', 'payment_date', 'status')
     list_display = ('car', 'container', 'amount_due', 'amount_paid', 'get_balance', 'payment_date', 'status', 'is_partial')
     list_filter = ('status', 'is_partial')
     search_fields = ('car__vin', 'container__number', 'status')
@@ -19,6 +23,7 @@ class PaymentAdmin(admin.ModelAdmin):
 class WarehouseAdmin(admin.ModelAdmin):
     list_display = ('name', 'location', 'capacity')
 
+
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
     list_display = ('vin', 'make', 'client', 'storage_status', 'title', 'container', 'container_arrival_date')
@@ -28,16 +33,18 @@ class CarAdmin(admin.ModelAdmin):
     def container_arrival_date(self, obj):
         return obj.container.arrival_date if obj.container else None
 
-    container_arrival_date.short_description = 'ETA'
+    container_arrival_date.short_description = 'Дата прибытия контейнера'
 
     def get_warehouse(self, obj):
         return obj.container.warehouse if obj.container else None
 
     get_warehouse.short_description = 'Склад'
 
+
 class CarInline(admin.TabularInline):  # или admin.StackedInline для другого вида
     model = Car
     extra = 1  # Количество пустых форм для добавления машин
+
 
 @admin.register(Container)
 class ContainerAdmin(admin.ModelAdmin):
@@ -45,10 +52,15 @@ class ContainerAdmin(admin.ModelAdmin):
     list_filter = ('status', 'warehouse')
     inlines = [CarInline]  # Вставляем возможность добавлять машины
 
+
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'phone', 'address')
 
+
+from django.contrib import admin
+
+# Register your models here.
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = ('client', 'issue_date', 'due_date', 'amount', 'status')

@@ -17,10 +17,8 @@ Including another URLconf
 # Proekt/urls.py
 from django.contrib import admin
 from django.urls import path, include
-from logistics.views import home
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('cars/', include('logistics.urls')),
-    path('', home, name='home'),  # Добавляем маршрут для главной страницы
+    path('', include('logistics.urls')),  # Подключаем URLs из приложения logistics
 ]
