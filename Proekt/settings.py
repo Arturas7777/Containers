@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'logistics',
+    'dj_database_url',
 ]
 
 MIDDLEWARE = [
@@ -56,15 +57,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Proekt.wsgi.application'
 
 # Database configuration for Heroku (PostgreSQL)
+import dj_database_url
+import os
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'proekt_db',  # Имя базы данных
-        'USER': 'postgres',  # Имя пользователя (по умолчанию)
-        'PASSWORD': '7154032tut',  # Пароль пользователя
-        'HOST': 'localhost',  # Хост
-        'PORT': '5432',  # Порт PostgreSQL по умолчанию
-    }
+    'default': dj_database_url.config(default=os.getenv("DATABASE_URL"))
 }
 
 # Password validation
