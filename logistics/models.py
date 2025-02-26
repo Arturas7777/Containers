@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+
 
 class Client(models.Model):
     name = models.CharField(max_length=100)  # Имя клиента
@@ -9,6 +11,7 @@ class Client(models.Model):
     def __str__(self):
         return self.name
 
+
 class Warehouse(models.Model):
     name = models.CharField(max_length=100)
     location = models.TextField()
@@ -16,6 +19,7 @@ class Warehouse(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Container(models.Model):
     STATUS_CHOICES = [
@@ -41,6 +45,7 @@ class Container(models.Model):
         elif self.status != 'sailing':  # Если контейнер больше не "Плывет", снимаем статус с машин
             self.cars.exclude(storage_status='delivered').update(storage_status=self.status)
 
+
 class Car(models.Model):
     STATUS_CHOICES = [
         ('in_port', 'В порту'),
@@ -63,45 +68,64 @@ class Car(models.Model):
     vin = models.CharField(max_length=17, unique=True)
     make = models.CharField(max_length=50)
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="cars", null=True)
-    title = models.CharField(max_length=20, choices=TITLE_CHOICES, default='ours')  # Заменили year на title
+    title = models.CharField(max_length=20, choices=TITLE_CHOICES, default='ours')
     container = models.ForeignKey(Container, on_delete=models.SET_NULL, null=True, blank=True, related_name="cars")
     storage_status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
-    # Новое поле procedure
+    # Новое поле для даты выгрузки автомобиля на склад
+    date_stored = models.DateField(null=True, blank=True)
+
     procedure = models.CharField(
         max_length=10,
         choices=PROCEDURE_CHOICES,
-        default='transit',  # Можно установить по умолчанию
+        default='transit',
     )
 
     def __str__(self):
-        # Проверяем, есть ли клиент, и выводим его имя, если есть
         client_name = self.client.name if self.client else "Без клиента"
-        return f"{self.make} {client_name} ({self.vin})"  # В выводе отображаем имя клиента
+        return f"{self.make} {client_name} ({self.vin})"
+
+    def days_on_warehouse_display(self):
+        """Возвращает количество дней, которое автомобиль находится на складе."""
+        if self.storage_status == 'in_warehouse' and self.date_stored:
+            return (timezone.now().date() - self.date_stored).days
+        return 0  # Если статус не 'На складе' или нет даты, то 0 дней
+
+    days_on_warehouse_display.short_description = "Дней на складе"  # Измененное название
+
+    def save(self, *args, **kwargs):
+        """Автоматически устанавливаем дату выгрузки, когда статус 'На складе'."""
+        if self.storage_status == 'in_warehouse' and not self.date_stored:
+            self.date_stored = timezone.now().date()  # Устанавливаем текущую дату
+        super().save(*args, **kwargs)
+
 
 class Payment(models.Model):
     car = models.ForeignKey('Car', on_delete=models.CASCADE, null=True, blank=True)  # Привязка к автомобилю
     container = models.ForeignKey('Container', on_delete=models.CASCADE, null=True, blank=True)  # Привязка к контейнеру
-    amount = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма платежа
+    amount_due = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма долга
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Сумма уже оплачена
     payment_date = models.DateField(auto_now_add=True)  # Дата платежа
     status = models.CharField(max_length=20, choices=[  # Статус платежа
         ('pending', 'Ожидает оплаты'),
         ('paid', 'Оплачен'),
         ('overdue', 'Просрочен'),
     ])
+    is_partial = models.BooleanField(default=False)  # Отметка о частичной оплате
 
     def save(self, *args, **kwargs):
-        # Если платеж связан с контейнером, делим сумму на количество машин в контейнере
-        if self.container:
-            cars_in_container = self.container.car_set.count()  # Получаем количество машин в контейнере
-            self.amount = self.amount / cars_in_container  # Разделяем сумму на количество машин
+        if self.amount_paid < self.amount_due:
+            self.is_partial = True
+        else:
+            self.is_partial = False
         super().save(*args, **kwargs)  # Сохраняем объект
 
+    def get_balance(self):
+        """Вычисляем сумму долга"""
+        return self.amount_due - self.amount_paid
+
     def __str__(self):
-        return f"Payment for {self.car if self.car else 'Container'} - {self.amount} USD ({self.status})"
-
-
-from django.utils import timezone
+        return f"Payment for {self.car if self.car else 'Container'} - {self.amount_paid} / {self.amount_due} USD ({self.status})"
 
 
 class Invoice(models.Model):
@@ -109,7 +133,7 @@ class Invoice(models.Model):
     issue_date = models.DateField(default=timezone.now)  # Дата выставления счета
     due_date = models.DateField()  # Срок оплаты
     amount = models.DecimalField(max_digits=10, decimal_places=2)  # Сумма счета
-    status = models.CharField(max_length=20, choices=[
+    status = models.CharField(max_length=20, choices=[  # Статус счета
         ('unpaid', 'Не оплачен'),
         ('paid', 'Оплачен'),
         ('overdue', 'Просрочен'),
@@ -126,8 +150,3 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice #{self.id} - {self.client.name} - {self.amount} USD ({self.status})"
-
-
-from django.db import models
-
-# Create your models here.
