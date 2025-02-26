@@ -57,9 +57,14 @@ WSGI_APPLICATION = 'Proekt.wsgi.application'
 
 # Database configuration for Heroku (PostgreSQL)
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgres://localhost:5432/mydb')
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'proekt_db',  # Имя базы данных
+        'USER': 'postgres',  # Имя пользователя (по умолчанию)
+        'PASSWORD': '7154032tut',  # Пароль пользователя
+        'HOST': 'localhost',  # Хост
+        'PORT': '5432',  # Порт PostgreSQL по умолчанию
+    }
 }
 
 # Password validation
