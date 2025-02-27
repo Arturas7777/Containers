@@ -24,9 +24,18 @@ class CarAdmin(admin.ModelAdmin):
     list_filter = ('storage_status', 'container')
     search_fields = ('vin', 'make', 'client__name')
 
+    def storage_status(self, obj):
+        return obj.storage_status
+    storage_status.short_description = "STATUS"  # Меняем здесь
+
+    def days_on_warehouse_display(self, obj):
+        if obj.storage_status == 'in_warehouse' and obj.date_stored:
+            return (timezone.now().date() - obj.date_stored).days
+        return 0
+    days_on_warehouse_display.short_description = "DAYS"
+
     def container_arrival_date(self, obj):
         return obj.container.arrival_date if obj.container else None
-
     container_arrival_date.short_description = 'ETA'
 
 
