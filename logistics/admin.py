@@ -21,13 +21,13 @@ class WarehouseAdmin(admin.ModelAdmin):
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
-    list_display = ('vin', 'make', 'days_on_warehouse_display', 'client', 'storage_status', 'title', 'container', 'container_arrival_date')
+    list_display = ('vin', 'make', 'days_on_warehouse_display', 'client', 'status', 'title', 'container', 'container_arrival_date')  # Замени 'storage_status' на 'status'
     list_filter = ('storage_status', 'container')
     search_fields = ('vin', 'make', 'client__name')
 
-    def storage_status(self, obj):
+    def status(self, obj):  # Переименовали метод
         return obj.storage_status
-    storage_status.short_description = "STATUS"  # Меняем здесь
+    status.short_description = "STATUS"
 
     def days_on_warehouse_display(self, obj):
         if obj.storage_status == 'in_warehouse' and obj.date_stored:
