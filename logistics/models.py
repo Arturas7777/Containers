@@ -81,6 +81,13 @@ class Car(models.Model):
         default='transit',
     )
 
+    # Новые поля для расходов и итога
+    ths = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="THS")  # Расходы THS
+    sklad = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="SKLAD")  # Расходы SKLAD
+    days_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="DAYS")  # Расходы DAYS
+    prof = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="PROF")  # Наценка
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, editable=False, verbose_name="TOTAL")  # Итог
+
     def __str__(self):
         client_name = self.client.name if self.client else "Без клиента"
         return f"{self.make} {client_name} ({self.vin})"
@@ -94,9 +101,11 @@ class Car(models.Model):
     days_on_warehouse_display.short_description = "Дней на складе"  # Измененное название
 
     def save(self, *args, **kwargs):
-        """Автоматически устанавливаем дату выгрузки, когда статус 'На складе'."""
+        """Автоматически устанавливаем дату выгрузки, когда статус 'На складе', и вычисляем TOTAL."""
         if self.storage_status == 'in_warehouse' and not self.date_stored:
             self.date_stored = timezone.now().date()  # Устанавливаем текущую дату
+        # Вычисляем TOTAL как сумму THS + SKLAD + DAYS + PROF
+        self.total = self.ths + self.sklad + self.days_cost + self.prof
         super().save(*args, **kwargs)
 
 
@@ -150,4 +159,3 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"Invoice #{self.id} - {self.client.name} - {self.amount} USD ({self.status})"
-
