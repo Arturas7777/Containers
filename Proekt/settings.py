@@ -43,8 +43,8 @@ ROOT_URLCONF = 'Proekt.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [],  # Здесь не нужно указывать путь, если используются APP_DIRS
+        'APP_DIRS': True,  # Включите загрузку шаблонов из приложений
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',

@@ -17,8 +17,10 @@ Including another URLconf
 # Proekt/urls.py
 from django.contrib import admin
 from django.urls import path, include
+from logistics import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('logistics.urls')),  # Подключаем URLs из приложения logistics
+    path('', views.home, name='home'),  # Добавляем маршрут для главной страницы
+    path('send-reminder/', views.send_reminder_view, name='send_reminder'),
 ]

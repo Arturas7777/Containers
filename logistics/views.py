@@ -14,3 +14,5 @@ def send_reminder_view(request):
     send_payment_reminder.delay()  # Запуск задачи Celery
     return JsonResponse({"status": "success", "message": "Reminder sent!"})
 # Create your views here.
+def home(request):
+    return render(request, 'logistics/home.html')
