@@ -19,21 +19,21 @@ class WarehouseAdmin(admin.ModelAdmin):
     list_display = ('name', 'location', 'capacity')
 
 
+from django.contrib import admin
+from django.utils import timezone
+from .models import Car, Payment, Warehouse, Container, Client, Invoice
+
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
-    list_display = ('vin', 'make', 'days_on_warehouse_display', 'client', 'status', 'title', 'container', 'container_arrival_date')  # Замени 'storage_status' на 'status'
+    list_display = ('vin', 'make', 'days_on_warehouse_display', 'client', 'storage_status', 'title', 'container', 'container_arrival_date')  # Вернули 'storage_status'
     list_filter = ('storage_status', 'container')
     search_fields = ('vin', 'make', 'client__name')
-
-    def status(self, obj):  # Переименовали метод
-        return obj.storage_status
-    status.short_description = "STATUS"
 
     def days_on_warehouse_display(self, obj):
         if obj.storage_status == 'in_warehouse' and obj.date_stored:
             return (timezone.now().date() - obj.date_stored).days
         return 0
-    days_on_warehouse_display.short_description = "DAYS"
+    days_on_warehouse_display.short_description = "DAYS"  # Оставляем "DAYS"
 
     def container_arrival_date(self, obj):
         return obj.container.arrival_date if obj.container else None
