@@ -15,12 +15,15 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 # Proekt/urls.py
-from django.contrib import admin
+
 from django.urls import path, include
 from logistics import views
+from logistics.custom_admin import admin_site
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.home, name='home'),  # Добавляем маршрут для главной страницы
+    path('admin/', admin_site.urls),
+    path('', views.home, name='home'),
     path('send-reminder/', views.send_reminder_view, name='send_reminder'),
 ]
+
+
